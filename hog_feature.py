@@ -8,6 +8,8 @@ from skimage.feature import hog
 from load_data import load_training_data
 
 # Define a function to return HOG features and visualization
+
+
 def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
     if vis == True:
         # Use skimage.hog() to get both features and a visualization
@@ -41,7 +43,7 @@ def main(path):
                                            pix_per_cell, cell_per_block,
                                            vis=True, feature_vec=False)
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(20, 5))
     plt.subplot(131)
     plt.imshow(image)
     plt.suptitle(cars[ind])
@@ -52,6 +54,7 @@ def main(path):
     plt.subplot(133)
     plt.imshow(hog_image, cmap='gray')
     plt.title('HOG Visualization')
+    fig.tight_layout()
     fig.savefig("output_images/hog.jpg")
 
 
@@ -63,4 +66,3 @@ if __name__ == "__main__":
         test_dir = sys.argv.pop()
 
     main(test_dir)
-    

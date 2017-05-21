@@ -3,55 +3,61 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import sys
-from load_data import load_training_data
-from color_convert import color_convert
+from load_data import load_training_images
+from load_data import load_image
+from color_convert import color_convert_nocheck
 from color_convert import get_cmap
 
 
-# Define a function to compute color histogram features
-# Pass the color_space flag as 3-letter all caps string
-# like 'HSV' or 'LUV' etc.
-# KEEP IN MIND IF YOU DECIDE TO USE THIS FUNCTION LATER
-# IN YOUR PROJECT THAT IF YOU READ THE IMAGE WITH
-# cv2.imread() INSTEAD YOU START WITH BGR COLOR!
 def bin_spatial(img, size=(32, 32)):
     img = cv2.resize(img, size).ravel()
     return img
 
 
-# Read in an image
-# You can also read cutout2, 3, 4 etc. to see other examples
+def test_bin_spatial(path, dcspace='RGB'):
+    cars, noncars = load_training_images(path)
 
-def test_bin_spatial(path, cspace='RGB'):
-    cars, noncars, data_info = load_training_data(path)
+    target_cspace = dcspace
+    # read a car image and get feature
     ind = np.random.randint(0, len(cars))
-    name = cars[ind]
-    # Read in an image
-    # You can also read cutout2, 3, 4 etc. to see other examples
-    image = cv2.imread(name)
-    #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    cvt = color_convert(image, 'BGR', cspace)
+    car_name = cars[ind]
+    car_image = load_image(car_name, dcspace)
+    car_feature = bin_spatial(car_image, size=(32, 32))
 
-    feature_vec = bin_spatial(cvt, size=(32, 32))
+    # read a non car image and get feature
+    ind = np.random.randint(0, len(noncars))
+    noncar_name = noncars[ind]
+    noncar_image = load_image(noncar_name, dcspace)
+    noncar_feature = bin_spatial(noncar_image, size=(32, 32))
 
     # Plot features
-    fig = plt.figure(figsize=(12, 2))
-    plt.subplot(121)
-    plt.imshow(color_convert(image, 'BGR', 'RGB'))
-    plt.xlabel(name)
-    plt.subplot(122)
-    plt.plot(feature_vec)
+    fig = plt.figure()
+    plt.subplot(221)
+    plt.imshow(color_convert_nocheck(car_image, dcspace, 'RGB'))
+    plt.title(car_name)
+    plt.subplot(222)
+    plt.plot(car_feature)
     plt.title('Spatially Binned Features')
-    plt.suptitle(cspace)
+    plt.suptitle(dcspace)
+    plt.subplot(223)
+    plt.imshow(color_convert_nocheck(noncar_image, dcspace, 'RGB'))
+    plt.title(noncar_name)
+    plt.subplot(224)
+    plt.plot(noncar_feature)
+    plt.title('Spatially Binned Features')
+    plt.suptitle(dcspace)
     fig.savefig("output_images/bin_spatial.jpg")
+    plt.show()
+    plt.close()
 
 
 if __name__ == "__main__":
     test_dir = "train_images"
-    cspace = 'HLS'
+    dcspace = 'HLS'
     if len(sys.argv) == 1:
-        print("use default dir:", test_dir, "color space", cspace)
+        print("use default dir:", test_dir, "color space", dcspace)
     else:
+        dcspace = sys.argv.pop()
         test_dir = sys.argv.pop()
 
-    test_bin_spatial(test_dir, cspace)
+    test_bin_spatial(test_dir, dcspace)

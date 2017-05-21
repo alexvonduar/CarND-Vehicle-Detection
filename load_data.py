@@ -6,7 +6,9 @@ import glob
 import sys
 import os
 
-# Define a function to return some characteristics of the dataset 
+from color_convert import color_convert_nocheck
+
+
 def data_look(car_list, notcar_list):
     data_dict = {}
     # Define a key in data_dict "n_cars" and store the number of car images
@@ -22,12 +24,14 @@ def data_look(car_list, notcar_list):
     # Return data_dict
     return data_dict
 
+
 def supported_image(name):
     lc_name = str.lower(name)
     if 'jpg' in lc_name or 'jpeg' in lc_name or 'png' in lc_name:
         return True
     else:
         return False
+
 
 def load_training_images(path):
     carList = []
@@ -45,7 +49,10 @@ def load_training_images(path):
                 #print('\t%s' % fname)
                 if supported_image(fname):
                     carList.append(os.path.join(dirName, fname))
+    np.random.shuffle(carList)
+    np.random.shuffle(noncarList)
     return carList, noncarList
+
 
 def load_images(path):
     images = []
@@ -55,8 +62,10 @@ def load_images(path):
             #print('\t%s' % fname)
             if supported_image(fname):
                 images.append(os.path.join(dirName, fname))
+    np.random.shuffle(images)
     return images
-    
+
+
 def load_training_data(path):
     cars, notcars = load_training_images(path)
     print("get ", len(cars), " vehicel images")
@@ -64,18 +73,25 @@ def load_training_data(path):
 
     data_info = data_look(cars, notcars)
 
-    print('Your function returned a count of', 
-          data_info["n_cars"], ' cars and', 
+    print('Your function returned a count of',
+          data_info["n_cars"], ' cars and',
           data_info["n_notcars"], ' non-cars')
-    print('of size: ',data_info["image_shape"], ' and data type:', 
+    print('of size: ', data_info["image_shape"], ' and data type:',
           data_info["data_type"])
     return cars, notcars, data_info
+
+
+def load_image(fname, color_space='BGR'):
+    '''load image using opencv imread function, convert color space according to input parameters'''
+    image = cv2.imread(fname)
+    image = color_convert_nocheck(image, 'BGR', color_space)
+    return image
 
 
 def main(path):
     cars, notcars, data_info = load_training_data(path)
 
-    # Just for fun choose random car / not-car indices and plot example images   
+    # Just for fun choose random car / not-car indices and plot example images
     car_ind = np.random.randint(0, len(cars))
     notcar_ind = np.random.randint(0, len(notcars))
 
@@ -91,6 +107,7 @@ def main(path):
     plt.imshow(notcar_image)
     plt.title('Example Not-car Image')
     fig.savefig("output_images/training_data.jpg")
+
 
 if __name__ == "__main__":
     test_dir = "train_images"

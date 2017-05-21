@@ -18,6 +18,7 @@ from color_feature import extract_color_features
 from color_feature import scale_norm
 from load_data import load_training_data
 
+
 def color_svc(X, y):
     print('Feature vector length:', len(X[0]))
     # Use a linear SVC
@@ -29,20 +30,21 @@ def color_svc(X, y):
     print(round(t2 - t, 2), 'Seconds to train SVC...')
     return svc
 
-def main(path, cspace = 'HSV'):
+
+def main(path, cspace='HSV'):
     cars, noncars, data_info = load_training_data(path)
 
     spatial = 32
     histbin = 32
 
     car_features = extract_color_features(cars, cspace=cspace, spatial_size=(spatial, spatial),
-                                    hist_bins=histbin, hist_range=(0, 256))
+                                          hist_bins=histbin, hist_range=(0, 256))
     notcar_features = extract_color_features(noncars, cspace=cspace, spatial_size=(spatial, spatial),
-                                       hist_bins=histbin, hist_range=(0, 256))
+                                             hist_bins=histbin, hist_range=(0, 256))
 
     # Create an array stack of feature vectors
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
-    scaled_X = scale_norm(X)
+    scaled_X, scaler = scale_norm(X)
 
     # Define the labels vector
     y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))

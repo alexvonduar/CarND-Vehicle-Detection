@@ -13,7 +13,7 @@ from skimage.feature import hog
 # for scikit-learn >= 0.18 use:
 # from sklearn.model_selection import train_test_split
 from sklearn.cross_validation import train_test_split
-from color_convert import color_convert
+from color_convert import color_convert_nocheck
 from bin_spatial import bin_spatial
 from color_histogram import color_hist_feature
 from hog_feature import get_hog_features
@@ -31,12 +31,12 @@ from vd_utils import have_classifier
 
 def combo_feature(img, scspace='BGR', dcspace='RGB', spatial_size=(32, 32),
                   hist_bins=32, orient=9,
-                  pix_per_cell=8, cell_per_block=2, hog_channel=0,
+                  pix_per_cell=8, cell_per_block=2, hog_channel='012',
                   spatial_feat=True, hist_feat=True, hog_feat=True):
     # 1) Define an empty list to receive features
     img_features = []
     # 2) Apply color conversion if other than 'RGB'
-    cvtImage = color_convert(img, scspace, dcspace)
+    cvtImage = color_convert_nocheck(img, scspace, dcspace)
     # 3) Compute spatial features if flag is set
     if spatial_feat == True:
         spatial_features = bin_spatial(cvtImage, size=spatial_size)
@@ -44,21 +44,28 @@ def combo_feature(img, scspace='BGR', dcspace='RGB', spatial_size=(32, 32),
         img_features.append(spatial_features)
     # 5) Compute histogram features if flag is set
     if hist_feat == True:
-        hist_features = color_hist_feature(img, nbins=hist_bins)
+        hist_features = color_hist_feature(cvtImage, nbins=hist_bins)
         # 6) Append features to list
         img_features.append(hist_features)
     # 7) Compute HOG features if flag is set
     if hog_feat == True:
-        if hog_channel == 'ALL':
-            hog_features = []
-            for channel in range(cvtImage.shape[2]):
-                hog_features.append(get_hog_features(cvtImage[:, :, channel],
+        hog_features = []
+        if len(cvtImage.shape) == 3:
+            channels = cvtImage.shape[2]
+        else:
+            channels = 1
+        for channel in range(channels):
+            if str(channel) in hog_channel:
+                #print('use channel', channel)
+                if channels == 1:
+                    hog_features.append(get_hog_features(cvtImage[:, :],
                                                      orient, pix_per_cell, cell_per_block,
                                                      vis=False, feature_vec=True))
-            hog_features = np.ravel(hog_features)
-        else:
-            hog_features = get_hog_features(cvtImage[:, :, hog_channel], orient,
-                                            pix_per_cell, cell_per_block, vis=False, feature_vec=True)
+                else:
+                    hog_features.append(get_hog_features(cvtImage[:, :, channel],
+                                                     orient, pix_per_cell, cell_per_block,
+                                                     vis=False, feature_vec=True))
+        hog_features = np.ravel(hog_features)
         # 8) Append features to list
         img_features.append(hog_features)
 
@@ -89,7 +96,7 @@ def extract_combo_features(fnames, dcspace='RGB', spatial_size=(32, 32),
 
 def do_combo_feature_train(cars, notcars, dcspace='RGB', spatial_size=(32, 32),
                            hist_bins=32, orient=9,
-                           pix_per_cell=8, cell_per_block=2, hog_channel=0,
+                           pix_per_cell=8, cell_per_block=2, hog_channel='012',
                            spatial_feat=True, hist_feat=True, hog_feat=True, SAVE=True):
     # Reduce the sample size because
     # The quiz evaluator times out after 13s of CPU time
@@ -136,13 +143,14 @@ def do_combo_feature_train(cars, notcars, dcspace='RGB', spatial_size=(32, 32),
     print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
 
     if SAVE:
-        save_classifier(svc, scaler)
+        save_classifier(svc, scaler, dcspace, spatial_size, hist_bins, orient,
+                        pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat)
     return svc, scaler
 
 
 def combo_feature_train(path, scspace='BGR', dcspace='RGB', spatial_size=(32, 32),
                         hist_bins=32, orient=9,
-                        pix_per_cell=8, cell_per_block=2, hog_channel=0,
+                        pix_per_cell=8, cell_per_block=2, hog_channel='012',
                         spatial_feat=True, hist_feat=True, hog_feat=True):
     cars, noncars = load_training_images(path)
 
@@ -155,40 +163,40 @@ def combo_feature_train(path, scspace='BGR', dcspace='RGB', spatial_size=(32, 32
     return svc, scaler
 
 
-def test_combo_feature(train_dir, test_dir):
+def test_combo_feature(train_dir, test_dir, force_run = False):
     # Uncomment the following line if you extracted training
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
     #image = image.astype(np.float32)/255
     scspace = 'BGR'
-    dcspace = 'YUV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+    dcspace = 'YCrCb'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
     orient = 9  # HOG orientations
     pix_per_cell = 8  # HOG pixels per cell
     cell_per_block = 2  # HOG cells per block
-    hog_channel = 0  # Can be 0, 1, 2, or "ALL"
-    spatial_size = (16, 16)  # Spatial binning dimensions
-    hist_bins = 16    # Number of histogram bins
+    hog_channel = '012'  # Can be 0, 1, 2, or "012"
+    spatial_size = (32, 32)  # Spatial binning dimensions
+    hist_bins = 32    # Number of histogram bins
     spatial_feat = True  # Spatial features on or off
     hist_feat = True  # Histogram features on or off
     hog_feat = True  # HOG features on or off
     y_start_stop = [None, None]  # Min and max in y to search in slide_window()
 
-
-    if have_classifier():
-        svc, scaler = load_classifier()
+    if have_classifier() and force_run == False:
+        svc, scaler, dcspace, spatial_size, hist_bins, orient, \
+        pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat = load_classifier()
     else:
         svc, scaler = combo_feature_train(train_dir, scspace=scspace, dcspace=dcspace,
-                                      spatial_size=spatial_size, hist_bins=hist_bins,
-                                      orient=orient, pix_per_cell=pix_per_cell,
-                                      cell_per_block=cell_per_block,
-                                      hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                      hist_feat=hist_feat, hog_feat=hog_feat)
+                                          spatial_size=spatial_size, hist_bins=hist_bins,
+                                          orient=orient, pix_per_cell=pix_per_cell,
+                                          cell_per_block=cell_per_block,
+                                          hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                          hist_feat=hist_feat, hog_feat=hog_feat)
 
     fnames = load_images(test_dir)
     for fname in fnames:
         image = cv2.imread(fname)
         draw_image = np.copy(image)
-        draw_image = color_convert(image, 'BGR', 'RGB')
+        draw_image = color_convert_nocheck(image, 'BGR', 'RGB')
 
         image = cv2.resize(image, (64, 64))
 

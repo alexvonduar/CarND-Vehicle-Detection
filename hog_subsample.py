@@ -3,30 +3,33 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import cv2
-from lesson_functions import *
+import os
+import sys
 
-dist_pickle = pickle.load(open("svc_pickle.p", "rb"))
-svc = dist_pickle["svc"]
-X_scaler = dist_pickle["scaler"]
-orient = dist_pickle["orient"]
-pix_per_cell = dist_pickle["pix_per_cell"]
-cell_per_block = dist_pickle["cell_per_block"]
-spatial_size = dist_pickle["spatial_size"]
-hist_bins = dist_pickle["hist_bins"]
-
-img = mpimg.imread('test_image.jpg')
+from color_convert import color_convert_nocheck
+from hog_feature import get_hog_features
+from bin_spatial import bin_spatial
+from color_histogram import color_hist_feature
+from vd_utils import load_classifier
+from load_data import load_images
+from load_data import load_image
 
 # Define a single function that can extract features using hog
 # sub-sampling and make predictions
 
 
-def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins):
 
-    draw_img = np.copy(img)
-    img = img.astype(np.float32) / 255
+def find_cars(img, scspace, dcspace, ystart, ystop, scale,
+              svc, scaler, orient, pix_per_cell, cell_per_block,
+              spatial_size, hist_bins, draw=False):
+
+    if draw:
+        #draw_img = np.copy(img)
+        draw_img = color_convert_nocheck(img, scspace, 'RGB')
+    #img = img.astype(np.float32) / 255
 
     img_tosearch = img[ystart:ystop, :, :]
-    ctrans_tosearch = convert_color(img_tosearch, conv='RGB2YCrCb')
+    ctrans_tosearch = color_convert_nocheck(img_tosearch, scspace, dcspace)
     if scale != 1:
         imshape = ctrans_tosearch.shape
         ctrans_tosearch = cv2.resize(ctrans_tosearch, (np.int(
@@ -56,6 +59,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     hog3 = get_hog_features(ch3, orient, pix_per_cell,
                             cell_per_block, feature_vec=False)
 
+    boxes = []
     for xb in range(nxsteps):
         for yb in range(nysteps):
             ypos = yb * cells_per_step
@@ -78,29 +82,66 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
 
             # Get color features
             spatial_features = bin_spatial(subimg, size=spatial_size)
-            hist_features = color_hist(subimg, nbins=hist_bins)
+            hist_features = color_hist_feature(subimg, nbins=hist_bins)
 
             # Scale features and make a prediction
-            test_features = X_scaler.transform(
+            test_features = scaler.transform(
                 np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
-            #test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))
+            #test_features = scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))
             test_prediction = svc.predict(test_features)
 
             if test_prediction == 1:
                 xbox_left = np.int(xleft * scale)
                 ytop_draw = np.int(ytop * scale)
                 win_draw = np.int(window * scale)
-                cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart), (xbox_left +
-                                                                          win_draw, ytop_draw + win_draw + ystart), (0, 0, 255), 6)
+                boxes.append(((xbox_left, ytop_draw + ystart),
+                             (xbox_left + win_draw, ytop_draw + win_draw + ystart)))
+                if draw:
+                    cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart),
+                                  (xbox_left + win_draw, ytop_draw + win_draw + ystart), (0, 0, 255), 6)
 
-    return draw_img
+    if draw:
+        return draw_img, boxes
+    else:
+        return boxes
 
 
-ystart = 400
-ystop = 656
-scale = 1.5
+def test_hog_scale(path):
+    svc, scaler, dcspace, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat = load_classifier()
 
-out_img = find_cars(img, ystart, ystop, scale, svc, X_scaler,
-                    orient, pix_per_cell, cell_per_block, spatial_size, hist_bins)
+    #input_name = 'test1.jpg'
+    #img = mpimg.imread(input_name)
 
-plt.imshow(out_img)
+    ystart = 400
+    ystop = 656
+    scale = 1.5
+    scspace = 'BGR'
+
+    fnames = load_images(path)
+    for fname in fnames:
+        img = load_image(fname, scspace)
+        print("processing", fname)
+        for scale in (1.0, 1.5, 2.0):
+            out_img, boxes = find_cars(img, scspace, dcspace, ystart, ystop, scale, svc, scaler,
+                                orient, pix_per_cell, cell_per_block, spatial_size, hist_bins, draw=True)
+
+            # plt.imshow(out_img)
+
+            basename = os.path.basename(fname)
+            name, ext = os.path.splitext(basename)
+            savename = os.path.join(
+                'output_images', name + "_subsample_" + str(scale) + ext)
+            fig = plt.figure()
+            plt.imshow(out_img)
+            fig.savefig(savename)
+            plt.close()
+
+
+if __name__ == "__main__":
+    test_dir = "test_images"
+    if len(sys.argv) == 1:
+        print("use default test dir:", test_dir)
+    else:
+        test_dir = sys.argv.pop()
+
+    test_hog_scale(test_dir)
