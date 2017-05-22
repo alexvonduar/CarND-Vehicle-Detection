@@ -61,6 +61,38 @@ def draw_labeled_bboxes(img, labels):
     # Return the image
     return img
 
+def get_labeled_bboxes(labels):
+    # Iterate through all detected cars
+    bboxes = []
+    for car_number in range(1, labels[1] + 1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox), np.min(nonzeroy)),
+                (np.max(nonzerox), np.max(nonzeroy)))
+        bboxes.append(bbox)
+    # Return the image
+    return bboxes
+
+def draw_labeled_bboxes_solid(img, labels):
+    # Iterate through all detected cars
+    for car_number in range(1, labels[1] + 1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox), np.min(nonzeroy)),
+                (np.max(nonzerox), np.max(nonzeroy)))
+        # Draw the box on the image
+        #cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 6)
+        img[bbox[0][1]:bbox[1][1], bbox[0][0]:bbox[1][0]] = 1
+    # Return the image
+    return img
 
 def apply_window_search(train_dir, test_dir):
     # Uncomment the following line if you extracted training
@@ -134,15 +166,15 @@ def apply_window_search(train_dir, test_dir):
                 'output_images', name + "_" + str(window_size) + "_" + ext)
             fig = plt.figure()
             plt.imshow(window_img)
-            plt.title('Original Image')
-            plt.xlabel('fname')
+            plt.title('Searchin window size: ' + str(window_size))
+            plt.xlabel(fname)
             fig.savefig(savename)
             plt.close()
         heat = apply_threshold(heat, 5)
         heatmap = np.clip(heat, 0, 255)
         labels = label(heatmap)
         draw_img = draw_labeled_bboxes(np.copy(draw_image), labels)
-        fig = plt.figure()
+        fig = plt.figure(figsize=(16, 8))
         plt.subplot(121)
         plt.imshow(draw_img)
         plt.title('Car Positions')

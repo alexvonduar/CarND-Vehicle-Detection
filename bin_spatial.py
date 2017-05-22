@@ -34,14 +34,14 @@ def test_bin_spatial(path, dcspace='RGB'):
     fig = plt.figure()
     plt.subplot(221)
     plt.imshow(color_convert_nocheck(car_image, dcspace, 'RGB'))
-    plt.title(car_name)
+    plt.xlabel(car_name)
     plt.subplot(222)
     plt.plot(car_feature)
     plt.title('Spatially Binned Features')
     plt.suptitle(dcspace)
     plt.subplot(223)
     plt.imshow(color_convert_nocheck(noncar_image, dcspace, 'RGB'))
-    plt.title(noncar_name)
+    plt.xlabel(noncar_name)
     plt.subplot(224)
     plt.plot(noncar_feature)
     plt.title('Spatially Binned Features')
@@ -53,7 +53,7 @@ def test_bin_spatial(path, dcspace='RGB'):
 
 if __name__ == "__main__":
     test_dir = "train_images"
-    dcspace = 'HLS'
+    dcspace = 'YCrCb'
     if len(sys.argv) == 1:
         print("use default dir:", test_dir, "color space", dcspace)
     else:

@@ -5,6 +5,7 @@ import pickle
 import cv2
 import os
 import sys
+from scipy.ndimage.measurements import label
 
 from color_convert import color_convert_nocheck
 from hog_feature import get_hog_features
@@ -13,6 +14,9 @@ from color_histogram import color_hist_feature
 from vd_utils import load_classifier
 from load_data import load_images
 from load_data import load_image
+from multiple_detection import add_heat
+from multiple_detection import apply_threshold
+from multiple_detection import draw_labeled_bboxes_solid
 
 # Define a single function that can extract features using hog
 # sub-sampling and make predictions
@@ -121,10 +125,12 @@ def test_hog_scale(path):
     for fname in fnames:
         img = load_image(fname, scspace)
         print("processing", fname)
+        heat = np.zeros_like(img[:, :, 0]).astype(np.float)
         for scale in (1.0, 1.5, 2.0):
             out_img, boxes = find_cars(img, scspace, dcspace, ystart, ystop, scale, svc, scaler,
                                 orient, pix_per_cell, cell_per_block, spatial_size, hist_bins, draw=True)
 
+            add_heat(heat, boxes)
             # plt.imshow(out_img)
 
             basename = os.path.basename(fname)
@@ -136,6 +142,26 @@ def test_hog_scale(path):
             fig.savefig(savename)
             plt.close()
 
+        heat = apply_threshold(heat, 1)
+        heatmap = np.clip(heat, 0, 255)
+        labels = label(heatmap)
+
+        basename = os.path.basename(fname)
+        name, ext = os.path.splitext(basename)
+        savename = os.path.join(
+        'output_images', name + "_heatmap" + ext)
+        fig = plt.figure()
+        plt.imshow(heatmap, cmap='gray')
+        fig.savefig(savename)
+        plt.close()
+        draw_labels = np.zeros_like(img[:, :, 0]).astype(np.uint8)
+        draw_labels = draw_labeled_bboxes_solid(draw_labels, labels)
+        savename = os.path.join(
+        'output_images', name + "_labels" + ext)
+        fig = plt.figure()
+        plt.imshow(draw_labels, cmap='gray')
+        fig.savefig(savename)
+        plt.close()
 
 if __name__ == "__main__":
     test_dir = "test_images"

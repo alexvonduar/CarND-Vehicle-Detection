@@ -5,7 +5,8 @@ import cv2
 import glob
 import sys
 from skimage.feature import hog
-from load_data import load_training_data
+from load_data import load_training_images
+from load_data import load_image
 
 # Define a function to return HOG features and visualization
 
@@ -25,35 +26,52 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, featu
 
 # Read in our vehicles and non-vehicles
 
-def main(path):
-    cars, noncars, data_info = load_training_data(path)
+def test_hog(path):
+    cars, noncars = load_training_images(path)
 
     # Generate a random index to look at a car image
-    ind = np.random.randint(0, len(cars))
+    car_ind = np.random.randint(0, len(cars))
+    noncar_ind = np.random.randint(0, len(noncars))
     # Read in the image
-    image = cv2.imread(cars[ind])
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    car_image = load_image(cars[car_ind], 'RGB')
+    car_gray = cv2.cvtColor(car_image, cv2.COLOR_RGB2GRAY)
+    noncar_image = load_image(noncars[noncar_ind], 'RGB')
+    noncar_gray = cv2.cvtColor(noncar_image, cv2.COLOR_RGB2GRAY)
     # Define HOG parameters
     orient = 9
     pix_per_cell = 8
     cell_per_block = 2
     # Call our function with vis=True to see an image output
-    features, hog_image = get_hog_features(gray, orient,
+    features, car_hog_image = get_hog_features(car_gray, orient,
+                                           pix_per_cell, cell_per_block,
+                                           vis=True, feature_vec=False)
+    features, noncar_hog_image = get_hog_features(noncar_gray, orient,
                                            pix_per_cell, cell_per_block,
                                            vis=True, feature_vec=False)
 
-    fig = plt.figure(figsize=(20, 5))
-    plt.subplot(131)
-    plt.imshow(image)
-    plt.suptitle(cars[ind])
+
+    fig = plt.figure(figsize=(10, 8))
+    plt.subplot(231)
+    plt.imshow(car_image)
+    plt.xlabel(cars[car_ind])
     plt.title('Example Car Image')
-    plt.subplot(132)
-    plt.imshow(gray, cmap='gray')
+    plt.subplot(232)
+    plt.imshow(car_gray, cmap='gray')
     plt.title('Gray Car Image')
-    plt.subplot(133)
-    plt.imshow(hog_image, cmap='gray')
+    plt.subplot(233)
+    plt.imshow(car_hog_image, cmap='gray')
     plt.title('HOG Visualization')
+    plt.subplot(234)
+    plt.imshow(noncar_image)
+    plt.xlabel(noncars[noncar_ind])
+    plt.title('Example Non-car Image')
+    plt.subplot(235)
+    plt.imshow(noncar_gray, cmap='gray')
+    plt.title('Gray Non-car Image')
+    plt.subplot(236)
+    plt.imshow(noncar_hog_image, cmap='gray')
+    plt.title('HOG Visualization')
+    plt.suptitle('HOG')
     fig.tight_layout()
     fig.savefig("output_images/hog.jpg")
 
@@ -65,4 +83,4 @@ if __name__ == "__main__":
     else:
         test_dir = sys.argv.pop()
 
-    main(test_dir)
+    test_hog(test_dir)

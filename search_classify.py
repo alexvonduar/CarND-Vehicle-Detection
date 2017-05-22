@@ -95,7 +95,7 @@ def apply_window_search(train_dir, test_dir):
         draw_image = color_convert_nocheck(image, 'BGR', 'RGB')
 
         min_window = spatial_size[0]
-        max_window = 256
+        max_window = 128
 
         top_y = int(image.shape[0] / 2)
         y_start_stop = [top_y, image.shape[0]]
@@ -120,7 +120,7 @@ def apply_window_search(train_dir, test_dir):
                                          hist_feat=hist_feat, hog_feat=hog_feat)
 
             window_img = draw_boxes(draw_image, hot_windows,
-                                    color=(0, 0, 255), thick=3)
+                                    color=(0, 0, 255), thick=5)
 
             plt.imshow(window_img)
             basename = os.path.basename(fname)
@@ -129,8 +129,8 @@ def apply_window_search(train_dir, test_dir):
                 'output_images', name + "_" + str(window_size) + "_" + ext)
             fig = plt.figure()
             plt.imshow(window_img)
-            plt.title('Original Image')
-            plt.xlabel('fname')
+            plt.title('Searching window size' + str(window_size))
+            plt.xlabel(fname)
             fig.savefig(savename)
             plt.close()
 

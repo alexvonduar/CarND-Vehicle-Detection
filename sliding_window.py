@@ -6,7 +6,7 @@ import sys
 import os
 
 from load_data import load_images
-from color_convert import color_convert
+from color_convert import color_convert_nocheck
 
 # Here is your draw_boxes function from the previous exercise
 
@@ -15,9 +15,14 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
     # Make a copy of the image
     imcopy = np.copy(img)
     # Iterate through the bounding boxes
+    #first = True
     for bbox in bboxes:
         # Draw a rectangle given bbox coordinates
+        #if first:
+        #    first_box = bbox
+        #    first = False
         cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
+    #cv2.rectangle(imcopy, first_box[0], first_box[1], (255, 0, 0), 6)
     # Return the image copy with boxes drawn
     return imcopy
 
@@ -70,20 +75,21 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
 def test_sliding_window(path):
     fnames = load_images(path)
 
+    y_start_stop = [400, 656]
     for fname in fnames:
         image = cv2.imread(fname)
-        image = color_convert(image, 'BGR', 'RGB')
-        windows = slide_window(image, x_start_stop=[None, None], y_start_stop=[None, None],
-                               xy_window=(128, 128), xy_overlap=(0.5, 0.5))
+        image = color_convert_nocheck(image, 'BGR', 'RGB')
+        windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
+                               xy_window=(64, 64), xy_overlap=(0.75, 0.75))
 
-        window_img = draw_boxes(image, windows, color=(0, 0, 255), thick=6)
+        window_img = draw_boxes(image, windows, color=(0, 0, 255), thick=2)
         basename = os.path.basename(fname)
         name, ext = os.path.splitext(basename)
         savename = os.path.join('output_images', name + "_window" + ext)
-        fig = plt.figure()
+        fig = plt.figure(figsize=(16,8))
         plt.imshow(window_img)
-        plt.title('Original Image')
-        plt.xlabel('fname')
+        plt.title('Sliding Window')
+        plt.xlabel(fname)
         fig.savefig(savename)
 
 

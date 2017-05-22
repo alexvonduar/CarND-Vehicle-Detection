@@ -99,13 +99,15 @@ def main(path):
     car_image = mpimg.imread(cars[car_ind])
     notcar_image = mpimg.imread(notcars[notcar_ind])
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(12,6))
     plt.subplot(121)
     plt.imshow(car_image)
-    plt.title('Example Car Image')
+    plt.xlabel(cars[car_ind])
+    plt.title('Example of Car Image')
     plt.subplot(122)
     plt.imshow(notcar_image)
-    plt.title('Example Not-car Image')
+    plt.xlabel(notcars[notcar_ind])
+    plt.title('Example of Not-car Image')
     fig.savefig("output_images/training_data.jpg")
 
 
