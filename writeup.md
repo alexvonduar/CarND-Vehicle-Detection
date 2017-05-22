@@ -38,19 +38,19 @@ The goals / steps of this project are the following:
 ## 1. Classifier Training
 ### 1. 1 Training Data
 
-I download training sets of [vehicles](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip) images from lesson as the training data. According to project tips, I apply random shuffle when travers the image dirs to list all the input image names in function `load_training_images()` in file `load_data.py:36-54`. From the two image sets, I can see there are 8792 images of cars and 8968 images of non-cars. 
+I download training sets of [vehicles](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip) images from lesson as the training data. According to project tips, I apply random shuffle when travese the training image dirs to list all the input image names in function `load_training_images()` in file `load_data.py:36-54`. From the two image sets, I can see there are 8792 images of cars and 8968 images of non-cars. 
 
 ![alt text][image1]
 
-Since the number of cars and not-cars images are some how close to balance, I decide to use them directly without any augment process.
+Since the number of cars and not-cars images seems to be in balance, I decide to use them directly without any augment process.
 
 ### 1. 2 Features
 
-To make classifier work, I need to extract some features from traing images that can feed classifier and get correct classify result.
+Since I decied to use a SVM classifier, so I need to extract some features from traing images that can feed to classifier and train it to work.
 
-From lesson, there're spatial binning, color histogram and HOG used.
+From the lesson, I can have a spatial binning, color histogram and HOG to choose or some combination of them.
 
-First, I try to extract spatial binning and visualize the result. To get spatial binning result, I use function `bin_spatial()` in file `bin_spatial.py:12-14` to get spatial binning.
+First, I try to extract spatial binning and visualize the result. To get that, I use function `bin_spatial()` in file `bin_spatial.py:12-14`.
 
 ![alt text][image2]
 
@@ -70,13 +70,11 @@ Here is an example using the `Gray` color space and HOG parameters of `orientati
 There are many parameters that can be tuned for extract features:
 1. binning spatial: `spatial_size`
 2. histogram: `hist_bins`, `hist_range`
-3. hog: `orientations`, `pixels_per_cell`, `cells_per_block`, `hog_channel`
+3. HOG: `orientations`, `pixels_per_cell`, `cells_per_block`, `hog_channel`
 
-I also tried some combinations of parameters using functions in file `color_classify.py` and `hog_classify.py` to help to evaluate.
+I tried some combinations of parameters using functions in file `color_classify.py` and `hog_classify.py` to help to evaluate the performance of different parameter set. I didn't try every combination that possible. From the color classify test, I can see most combinations are almost at the same acuracy level except using gray color space. From the HOG test, I find YUV, LUV, YCrCb and HSV color space out performed than other color spaces a little bit, all around accuracy from ~99.8% to ~99.4%.
 
-I didn't try every combination that possible. From the color classify test, I can see most combinations are almost at the same acuracy level except using gray color space. From the hog test, I find YUV, LUV, YCrCb and HSV color space out performed than other color space a little bit, all around accuracy from ~99.8% to ~99.4%.
-
-So, according to prior test and do some all together test, I choose the `spatial_size` as 32, choose `hist_bins=32` and keep the default `hist_range=(0,256)`. I choose hog parameters `orientations=9`, `pixels_per_cell=8`, `cells_per_block=2`, `hog_channel=012` which means do hog process for each possible color channels. And I choose `YCrCb` as the color space, all images for binning spatial, histogram and hog, keep the same size and color space. Here's a table for the final parameter set.
+Finally, according to prior tests, I choose the `spatial_size` as 32, choose `hist_bins=32` and keep the default `hist_range=(0,256)`. I choose HOG parameters `orientations=9`, `pixels_per_cell=8`, `cells_per_block=2`, `hog_channel=012` which means do HOG process for each possible color channels. And I choose to use `YCrCb` color space. Here's a table for the final parameter set.
 
 |Parameters||
 |:----:|:----:|
